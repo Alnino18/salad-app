@@ -22,9 +22,18 @@ dp = Dispatcher()
 def init_db():
     conn = sqlite3.connect('orders.db')
     cur = conn.cursor()
+    # Создаем таблицу, если её нет
     cur.execute('''CREATE TABLE IF NOT EXISTS orders 
                    (id INTEGER PRIMARY KEY, user_name TEXT, location TEXT, 
                     salad TEXT, value TEXT, unit TEXT, date TEXT)''')
+    
+    # Проверка: если колонка location вдруг отсутствует (в старой базе), добавляем её
+    cur.execute("PRAGMA table_info(orders)")
+    columns = [column[1] for column in cur.fetchall()]
+    if 'location' not in columns:
+        cur.execute("ALTER TABLE orders ADD COLUMN location TEXT")
+        print("База данных успешно обновлена: добавлена колонка location")
+    
     conn.commit()
     conn.close()
 
@@ -126,3 +135,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
