@@ -3,135 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Заказ салатов</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --tg-bg: var(--tg-theme-bg-color, #ffffff);
             --tg-text: var(--tg-theme-text-color, #000000);
-            --tg-hint: var(--tg-theme-hint-color, #999999);
-            --tg-link: var(--tg-theme-link-color, #248bcf);
             --tg-button: var(--tg-theme-button-color, #248bcf);
             --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
         }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--tg-bg);
-            color: var(--tg-text);
-            margin: 0;
-            padding: 0;
-            padding-bottom: 80px;
+        body { font-family: sans-serif; background: var(--tg-bg); color: var(--tg-text); margin: 0; padding: 15px; }
+        
+        /* Экран выбора цеха */
+        #location-screen { display: flex; flex-direction: column; gap: 15px; text-align: center; padding-top: 50px; }
+        .loc-btn { 
+            padding: 20px; border-radius: 12px; border: 2px solid var(--tg-button); 
+            background: transparent; color: var(--tg-text); font-size: 18px; font-weight: bold; cursor: pointer;
         }
+        .loc-btn.active { background: var(--tg-button); color: var(--tg-button-text); }
 
-        .header {
-            position: sticky;
-            top: 0;
-            background: var(--tg-bg);
-            padding: 10px 15px;
-            border-bottom: 1px solid #ccc;
-            z-index: 10;
-        }
-
-        .search-box {
-            width: 100%;
-            padding: 10px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-            background: var(--tg-bg);
-            color: var(--tg-text);
-        }
-
-        .category-title {
-            background: #f4f4f4;
-            color: #666;
-            padding: 5px 15px;
-            font-size: 14px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        .salad-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-        }
-
-        .salad-info {
-            flex: 1;
-        }
-
-        .salad-name {
-            font-weight: 500;
-        }
-
-        .controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        input[type="number"] {
-            width: 50px;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            text-align: center;
-        }
-
-        select {
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: var(--tg-bg);
-            color: var(--tg-text);
-        }
-
-        .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-            padding: 15px;
-            background: var(--tg-bg);
-            box-sizing: border-box;
-            border-top: 1px solid #ccc;
-        }
-
-        #order-btn {
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: var(--tg-button);
-            color: var(--tg-button-text);
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
+        /* Экран салата (скрыт по умолчанию) */
+        #main-app { display: none; }
+        .salad-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; }
         .hidden { display: none; }
+        
+        .footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: var(--tg-bg); border-top: 1px solid #ccc; }
+        #order-btn { width: 100%; padding: 15px; border: none; border-radius: 10px; background: var(--tg-button); color: var(--tg-button-text); font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="header">
-    <input type="text" class="search-box" id="search" placeholder="Поиск салата...">
+<div id="location-screen">
+    <h2 style="text-align: center;">Выберите точку:</h2>
+    <button class="loc-btn" onclick="selectLocation('Эко Базар')">Эко Базар</button>
+    <button class="loc-btn" onclick="selectLocation('Сергили Ярмарка')">Сергили Ярмарка</button>
+    <button class="loc-btn" onclick="selectLocation('Сергили Дехкон Базар')">Сергили Дехкон Базар</button>
 </div>
 
-<div id="app">
+<div id="main-app">
+    <h3 id="current-loc-title"></h3>
+    <input type="text" id="search" placeholder="Поиск салата..." style="width:100%; padding:10px; margin-bottom:10px;">
+    <div id="salad-list"></div>
+    <div class="footer">
+        <button id="order-btn">ОТПРАВИТЬ ЗАКАЗ</button>
     </div>
-
-<div class="footer">
-    <button id="order-btn">ОТПРАВИТЬ ЗАКАЗ</button>
 </div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    let selectedLocation = "";
     const saladData = {
         "Классические": ["Ашланфу", "Баклажан и дунганский перец жареный", "Баклажаны и кабачки жареные", 
   "Баклажаны маринованные", "Баклажаны соте", "Баклажаны сухие", "Винегрет", 
@@ -153,69 +74,42 @@
   "Уксус", "Фунчоза сухая", "Чинпени", "Чипс", "Кукси"]
     };
 
-    const container = document.getElementById('app');
-
-    // Рендерим список
-    for (const [category, items] of Object.entries(saladData)) {
-        const catDiv = document.createElement('div');
-        catDiv.innerHTML = `<div class="category-title">${category}</div>`;
-        items.forEach(name => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'salad-item';
-            itemDiv.dataset.name = name.toLowerCase();
-            itemDiv.innerHTML = `
-                <div class="salad-info">
-                    <div class="salad-name">${name}</div>
-                </div>
-                <div class="controls">
-                    <input type="number" id="qty-${name}" min="0" placeholder="0">
-                    <select id="unit-${name}">
-                        <option value="кг">кг</option>
-                        <option value="шт">шт</option>
-                    </select>
-                </div>
-            `;
-            catDiv.appendChild(itemDiv);
-        });
-        container.appendChild(catDiv);
+    function selectLocation(loc) {
+        selectedLocation = loc;
+        document.getElementById('location-screen').classList.add('hidden');
+        document.getElementById('main-app').style.display = 'block';
+        document.getElementById('current-loc-title').innerText = "Заказ для: " + loc;
     }
 
-    // Поиск
-    document.getElementById('search').addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase();
-        document.querySelectorAll('.salad-item').forEach(item => {
-            if (item.dataset.name.includes(query)) {
-                item.classList.remove('hidden');
-            } else {
-                item.classList.add('hidden');
-            }
+    // Рендер салатного списка
+    const listDiv = document.getElementById('salad-list');
+    salads.forEach(name => {
+        listDiv.innerHTML += `
+            <div class="salad-item">
+                <span>${name}</span>
+                <div style="display:flex; gap:5px;">
+                    <input type="number" id="qty-${name}" style="width:50px" placeholder="0">
+                    <select id="unit-${name}"><option>шт</option><option>кг</option></select>
+                </div>
+            </div>`;
+    });
+
+    document.getElementById('order-btn').onclick = function() {
+        let items = [];
+        salads.forEach(name => {
+            let q = document.getElementById(`qty-${name}`).value;
+            let u = document.getElementById(`unit-${name}`).value;
+            if (q > 0) items.push({name: name, qty: q, unit: u});
         });
-    });
 
-    // Отправка
-    document.getElementById('order-btn').addEventListener('click', () => {
-        let order = [];
-        for (const items of Object.values(saladData)) {
-            items.forEach(name => {
-                const qty = document.getElementById(`qty-${name}`).value;
-                const unit = document.getElementById(`unit-${name}`).value;
-                if (qty > 0) {
-                    order.push({ salad: name, value: qty, unit: unit });
-                }
-            });
-        }
+        if(items.length === 0) return alert("Ничего не выбрано");
 
-        if (order.length === 0) {
-            tg.showAlert("Выберите хотя бы один салат!");
-            return;
-        }
-
-        tg.sendData(JSON.stringify(order));
-        tg.close();
-    });
+        // Отправляем данные вместе с названием цеха
+        tg.sendData(JSON.stringify({
+            location: selectedLocation,
+            order: items
+        }));
+    };
 </script>
-
 </body>
 </html>
-
-
