@@ -237,12 +237,12 @@
         }
 
         const finalData = {
-            location: selectedLocation,
-            order: order
-        };
-
-        tg.sendData(JSON.stringify(finalData));
+    location: selectedLocation,
+    order: order // массив с вашими салатами
+};
+tg.sendData(JSON.stringify(finalData));
     });
 </script>
 </body>
 </html>
+
