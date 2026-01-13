@@ -1,29 +1,139 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Заказ салатов</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); padding: 15px; }
-        .item { border-bottom: 1px solid #ccc; padding: 10px 0; display: flex; justify-content: space-between; }
-        input { width: 60px; border-radius: 5px; border: 1px solid #ccc; padding: 5px; }
-        select { padding: 5px; border-radius: 5px; }
-        .main-button { background: #248bcf; color: white; border: none; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; position: fixed; bottom: 10px; left: 0; }
+        :root {
+            --tg-bg: var(--tg-theme-bg-color, #ffffff);
+            --tg-text: var(--tg-theme-text-color, #000000);
+            --tg-hint: var(--tg-theme-hint-color, #999999);
+            --tg-link: var(--tg-theme-link-color, #248bcf);
+            --tg-button: var(--tg-theme-button-color, #248bcf);
+            --tg-button-text: var(--tg-theme-button-text-color, #ffffff);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-bg);
+            color: var(--tg-text);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            background: var(--tg-bg);
+            padding: 10px 15px;
+            border-bottom: 1px solid #ccc;
+            z-index: 10;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+            background: var(--tg-bg);
+            color: var(--tg-text);
+        }
+
+        .category-title {
+            background: #f4f4f4;
+            color: #666;
+            padding: 5px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .salad-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .salad-info {
+            flex: 1;
+        }
+
+        .salad-name {
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        input[type="number"] {
+            width: 50px;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            text-align: center;
+        }
+
+        select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background: var(--tg-bg);
+            color: var(--tg-text);
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            padding: 15px;
+            background: var(--tg-bg);
+            box-sizing: border-box;
+            border-top: 1px solid #ccc;
+        }
+
+        #order-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: var(--tg-button);
+            color: var(--tg-button-text);
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <h3 style="text-align: center;">Заказ салатов</h3>
-    <div id="salad-list"></div>
-    <div></div>
-    <button class="main-button" onclick="sendOrder()">ОФОРМИТЬ ЗАКАЗ</button>
 
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+<div class="header">
+    <input type="text" class="search-box" id="search" placeholder="Поиск салата...">
+</div>
 
-        const salads = [
-  "Ашланфу", "Баклажан и дунганский перец жареный", "Баклажаны и кабачки жареные", 
+<div id="app">
+    </div>
+
+<div class="footer">
+    <button id="order-btn">ОТПРАВИТЬ ЗАКАЗ</button>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const saladData = {
+        "Классические": ["Ашланфу", "Баклажан и дунганский перец жареный", "Баклажаны и кабачки жареные", 
   "Баклажаны маринованные", "Баклажаны соте", "Баклажаны сухие", "Винегрет", 
   "Витаминка", "Грибное ассорти", "Грибы древесные", "Грибы жареные", 
   "Грибы маринованные", "Грибы шампиньоны", "Грибы шитаки", "Капуста сладкая", 
@@ -31,7 +141,8 @@
   "Маш", "Морская капуста", "Огурцы", "Перец жареный", "Свёкла", "Соя мясо", 
   "Спаржа", "Стрелки", "Тиби", "Тофу салат", "Фаршированный перец", "Фунчоза", 
   "Хе куриное", "Хе мясное", "Хе рыба", "Хе три буха", "Галовка капуста", 
-  "Шпинат", "Армянский капуста", "Дайкон маринованный", "Дайкон салат", 
+  "Шпинат"],
+        "Другие": [ "Армянский капуста", "Дайкон маринованный", "Дайкон салат", 
   "Зверобой", "Капуста кимчи", "Квашеная капуста не сладкая", 
   "Квашеная капуста сладкая", "Маринованный огурцы", "Маринованный помидор", 
   "Редиска чимчи", "Солёные ассорти", "Солёные огурцы", "Солёные памидор", 
@@ -39,44 +150,72 @@
   "Оливье", "Чартоги", "Варенка", "Горчица", "Лозижон", "Маченка", 
   "Нори Большой", "Нори Маленький", "Пигодя крахмальные", "Пигодя рисовый", 
   "Спаржа сухая", "Халапено", "Тирой", "Борсик йог", "Гоз йог", "Цяй жареный", 
-  "Уксус", "Фунчоза сухая", "Чинпени", "Чипс", "Кукси"
-];
-        const listDiv = document.getElementById('list');
-        salads.forEach(name => {
-            listDiv.innerHTML += `
-                <div class="salad-item">
-                    <span>${name}</span>
-                    <div>
-                        <input type="number" id="qty-${name}" min="0" placeholder="0">
-                        <select id="unit-${name}">
-                            <option value="кг">кг</option>
-                            <option value="шт">шт</option>
-                        </select>
-                    </div>
-                </div>`;
-        });
+  "Уксус", "Фунчоза сухая", "Чинпени", "Чипс", "Кукси"]
+    };
 
-        document.getElementById('order-btn').addEventListener('click', () => {
-            let orderData = [];
-            salads.forEach(name => {
-                let val = document.getElementById(`qty-${name}`).value;
-                let unit = document.getElementById(`unit-${name}`).value;
-                if (val > 0) {
-                    orderData.push({ salad: name, value: val, unit: unit });
+    const container = document.getElementById('app');
+
+    // Рендерим список
+    for (const [category, items] of Object.entries(saladData)) {
+        const catDiv = document.createElement('div');
+        catDiv.innerHTML = `<div class="category-title">${category}</div>`;
+        items.forEach(name => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'salad-item';
+            itemDiv.dataset.name = name.toLowerCase();
+            itemDiv.innerHTML = `
+                <div class="salad-info">
+                    <div class="salad-name">${name}</div>
+                </div>
+                <div class="controls">
+                    <input type="number" id="qty-${name}" min="0" placeholder="0">
+                    <select id="unit-${name}">
+                        <option value="кг">кг</option>
+                        <option value="шт">шт</option>
+                    </select>
+                </div>
+            `;
+            catDiv.appendChild(itemDiv);
+        });
+        container.appendChild(catDiv);
+    }
+
+    // Поиск
+    document.getElementById('search').addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        document.querySelectorAll('.salad-item').forEach(item => {
+            if (item.dataset.name.includes(query)) {
+                item.classList.remove('hidden');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+    });
+
+    // Отправка
+    document.getElementById('order-btn').addEventListener('click', () => {
+        let order = [];
+        for (const items of Object.values(saladData)) {
+            items.forEach(name => {
+                const qty = document.getElementById(`qty-${name}`).value;
+                const unit = document.getElementById(`unit-${name}`).value;
+                if (qty > 0) {
+                    order.push({ salad: name, value: qty, unit: unit });
                 }
             });
+        }
 
-            if (orderData.length === 0) {
-                alert("Вы ничего не выбрали!");
-                return;
-            }
+        if (order.length === 0) {
+            tg.showAlert("Выберите хотя бы один салат!");
+            return;
+        }
 
-            // ВАЖНО: Отправка данных боту
-            tg.sendData(JSON.stringify(orderData));
-            tg.close(); // Закрыть приложение после отправки
-        });
-    </script>
+        tg.sendData(JSON.stringify(order));
+        tg.close();
+    });
+</script>
+
 </body>
-
 </html>
+
 
