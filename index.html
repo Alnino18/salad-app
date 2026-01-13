@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); padding: 15px; }
+        .item { border-bottom: 1px solid #ccc; padding: 10px 0; display: flex; justify-content: space-between; }
+        input { width: 60px; border-radius: 5px; border: 1px solid #ccc; padding: 5px; }
+        select { padding: 5px; border-radius: 5px; }
+        .main-button { background: #248bcf; color: white; border: none; width: 100%; padding: 15px; border-radius: 10px; font-weight: bold; position: fixed; bottom: 10px; left: 0; }
+    </style>
+</head>
+<body>
+    <h3 style="text-align: center;">Заказ салатов</h3>
+    <div id="salad-list"></div>
+    <div></div>
+    <button class="main-button" onclick="sendOrder()">ОФОРМИТЬ ЗАКАЗ</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const salads = [
+  "Ашланфу", "Баклажан и дунганский перец жареный", "Баклажаны и кабачки жареные", 
+  "Баклажаны маринованные", "Баклажаны соте", "Баклажаны сухие", "Винегрет", 
+  "Витаминка", "Грибное ассорти", "Грибы древесные", "Грибы жареные", 
+  "Грибы маринованные", "Грибы шампиньоны", "Грибы шитаки", "Капуста сладкая", 
+  "Кочи нипи", "Креветки", "Лечо", "Марковча", "Марковча не крашенная", 
+  "Маш", "Морская капуста", "Огурцы", "Перец жареный", "Свёкла", "Соя мясо", 
+  "Спаржа", "Стрелки", "Тиби", "Тофу салат", "Фаршированный перец", "Фунчоза", 
+  "Хе куриное", "Хе мясное", "Хе рыба", "Хе три буха", "Галовка капуста", 
+  "Шпинат", "Армянский капуста", "Дайкон маринованный", "Дайкон салат", 
+  "Зверобой", "Капуста кимчи", "Квашеная капуста не сладкая", 
+  "Квашеная капуста сладкая", "Маринованный огурцы", "Маринованный помидор", 
+  "Редиска чимчи", "Солёные ассорти", "Солёные огурцы", "Солёные памидор", 
+  "Чеснок маринованный", "Чимчи", "Женский каприз", "Крабовые", "Мужской каприз", 
+  "Оливье", "Чартоги", "Варенка", "Горчица", "Лозижон", "Маченка", 
+  "Нори Большой", "Нори Маленький", "Пигодя крахмальные", "Пигодя рисовый", 
+  "Спаржа сухая", "Халапено", "Тирой", "Борсик йог", "Гоз йог", "Цяй жареный", 
+  "Уксус", "Фунчоза сухая", "Чинпени", "Чипс", "Кукси"
+];
+        const container = document.getElementById('salad-list');
+        salads.forEach(name => {
+            container.innerHTML += `
+                <div class="item">
+                    <span>${name}</span>
+                    <div>
+                        <input type="number" id="val-${name}" placeholder="0">
+                        <select id="unit-${name}">
+                            <option value="кг">кг</option>
+                            <option value="шт">шт</option>
+                        </select>
+                    </div>
+                </div>`;
+        });
+
+        function sendOrder() {
+            let result = [];
+            salads.forEach(name => {
+                let val = document.getElementById(`val-${name}`).value;
+                let unit = document.getElementById(`unit-${name}`).value;
+                if (val > 0) result.push({ salad: name, value: val, unit: unit });
+            });
+
+            if (result.length === 0) return alert("Ничего не выбрано!");
+            tg.sendData(JSON.stringify(result)); // Отправляем данные боту
+        }
+    </script>
+</body>
+</html>
