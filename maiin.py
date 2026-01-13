@@ -3,12 +3,14 @@ import json
 import sqlite3
 import datetime
 import asyncio
+from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, FSInputFile
 from PIL import Image, ImageDraw, ImageFont
 
-# --- НАСТРОЙКИ (Замените на свои или используйте .env) ---
+# Загрузка настроек
+load_dotenv()
 API_TOKEN = '8241341995:AAGC0lw8M-qeg9OpipC25qU90oPubvwqQF4'
 GROUP_ID = -1003399244861  # ID вашей группы (с -100)
 WEBAPP_URL = 'https://alnino18.github.io/salad-app/' # Ссылка на index.html
@@ -21,114 +23,105 @@ def init_db():
     conn = sqlite3.connect('orders.db')
     cur = conn.cursor()
     cur.execute('''CREATE TABLE IF NOT EXISTS orders 
-                   (id INTEGER PRIMARY KEY, user_name TEXT, salad TEXT, value TEXT, unit TEXT, date TEXT)''')
+                   (id INTEGER PRIMARY KEY, user_name TEXT, location TEXT, 
+                    salad TEXT, value TEXT, unit TEXT, date TEXT)''')
     conn.commit()
     conn.close()
 
-def save_order(user_name, salad, value, unit):
+def save_order(user_name, location, salad, value, unit):
     conn = sqlite3.connect('orders.db')
     cur = conn.cursor()
     date_today = datetime.date.today().strftime("%d.%m.%Y")
-    cur.execute("INSERT INTO orders (user_name, salad, value, unit, date) VALUES (?, ?, ?, ?, ?)",
-                (user_name, salad, value, unit, date_today))
+    cur.execute("INSERT INTO orders (user_name, location, salad, value, unit, date) VALUES (?, ?, ?, ?, ?, ?)",
+                (user_name, location, salad, value, unit, date_today))
     conn.commit()
     conn.close()
 
-# --- ГЕНЕРАЦИЯ ИЗОБРАЖЕНИЯ НАКЛАДНОЙ ---
-def create_jpg_invoice(rows, title):
-    date_str = datetime.date.today().strftime("%d.%m.%Y")
+# --- ГЕНЕРАЦИЯ ТАБЛИЦЫ В JPG ---
+def create_table_invoice(rows, title, subtitle):
+    date_str = datetime.date.today().strftime("%d.%m.%Y %H:%M")
     img_name = f"invoice_{datetime.datetime.now().strftime('%H%M%S')}.jpg"
     
-    # Расчет высоты картинки в зависимости от кол-ва строк
-    width = 650
-    height = 160 + (len(rows) * 45)
-    img = Image.new('RGB', (width, height), color=(255, 255, 255))
+    # Настройки таблицы
+    margin = 40
+    col_widths = [50, 300, 100, 100] # №, Салат, Кол-во, Ед. изм.
+    row_height = 40
+    header_height = 180
+    width = sum(col_widths) + (margin * 2)
+    height = header_height + (len(rows) + 1) * row_height + margin
+
+    img = Image.new('RGB', (width, int(height)), color=(255, 255, 255))
     draw = ImageDraw.Draw(img)
     
     try:
-        # Убедитесь, что arial.ttf лежит в той же папке на сервере!
-        font = ImageFont.truetype("arial.ttf", 24)
-        header_font = ImageFont.truetype("arial.ttf", 32)
+        f_bold = ImageFont.truetype("arial.ttf", 28)
+        f_reg = ImageFont.truetype("arial.ttf", 22)
+        f_small = ImageFont.truetype("arial.ttf", 18)
     except:
-        font = ImageFont.load_default()
-        header_font = ImageFont.load_default()
+        f_bold = f_reg = f_small = ImageFont.load_default()
 
-    draw.text((40, 40), f"{title}", fill=(0, 0, 0), font=header_font)
-    draw.text((40, 85), f"Дата: {date_str}", fill=(100, 100, 100), font=font)
+    # Шапка документа
+    draw.text((margin, 30), title, fill=(0, 0, 0), font=f_bold)
+    draw.text((margin, 75), f"Отправитель: {subtitle}", fill=(60, 60, 60), font=f_reg)
+    draw.text((margin, 110), f"Дата: {date_str}", fill=(100, 100, 100), font=f_small)
+
+    # Рисуем таблицу
+    curr_y = header_height
+    headers = ["№", "Наименование салата", "Кол-во", "Ед."]
     
-    y = 140
-    for i, (salad, unit, total) in enumerate(rows, 1):
-        draw.text((40, y), f"{i}. {salad} — {total} {unit}", fill=(0, 0, 0), font=font)
-        y += 45
-    
+    # Отрисовка заголовков таблицы
+    curr_x = margin
+    for i, h_text in enumerate(headers):
+        draw.rectangle([curr_x, curr_y, curr_x + col_widths[i], curr_y + row_height], outline=(0,0,0), width=2)
+        draw.text((curr_x + 5, curr_y + 8), h_text, fill=(0,0,0), font=f_small)
+        curr_x += col_widths[i]
+
+    # Отрисовка строк с данными
+    curr_y += row_height
+    for idx, (name, unit, qty) in enumerate(rows, 1):
+        curr_x = margin
+        row_data = [str(idx), name, str(qty), unit]
+        for i, val in enumerate(row_data):
+            draw.rectangle([curr_x, curr_y, curr_x + col_widths[i], curr_y + row_height], outline=(0,0,0), width=1)
+            draw.text((curr_x + 5, curr_y + 8), val, fill=(0,0,0), font=f_reg)
+            curr_x += col_widths[i]
+        curr_y += row_height
+
     img.save(img_name)
     return img_name
 
-# --- ОБРАБОТЧИКИ КОМАНД ---
+# --- ХЕНДЛЕРЫ ---
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    # Кнопка для открытия вашего HTML Mini App
     markup = types.ReplyKeyboardMarkup(keyboard=[
-        [types.KeyboardButton(text="🥗 ЗАКАЗАТЬ САЛАТЫ", web_app=WebAppInfo(url=WEBAPP_URL))]
+        [types.KeyboardButton(text="🥗 ОФОРМИТЬ ЗАКАЗ", web_app=WebAppInfo(url=WEBAPP_URL))]
     ], resize_keyboard=True)
-    
-    await message.answer(
-        "Привет! Нажми на кнопку ниже, чтобы выбрать салаты в меню.",
-        reply_markup=markup
-    )
+    await message.answer("Выберите цех и салаты в меню:", reply_markup=markup)
 
 @dp.message(F.content_type == types.ContentType.WEB_APP_DATA)
 async def handle_webapp_data(message: types.Message):
-    user_name = message.from_user.full_name
-    # Получаем JSON из нашего HTML (того самого index.html)
     try:
-        data = json.loads(message.web_app_data.data)
+        raw_data = json.loads(message.web_app_data.data)
+        location = raw_data.get('location', 'Не указан')
+        order_items = raw_data.get('order', [])
+        user_name = message.from_user.full_name
         
-        order_items = []
-        for item in data:
-            save_order(user_name, item['salad'], item['value'], item['unit'])
-            order_items.append((item['salad'], item['unit'], item['value']))
+        db_rows = []
+        for item in order_items:
+            save_order(user_name, location, item['name'], item['qty'], item['unit'])
+            db_rows.append((item['name'], item['unit'], item['qty']))
         
-        # Создаем картинку для подтверждения
-        img_path = create_jpg_invoice(order_items, f"ЗАКАЗ: {user_name}")
+        img_path = create_table_invoice(db_rows, f"ЗАКАЗ: {location}", user_name)
         
-        # Отправляем пользователю в ЛС
-        await message.answer_photo(FSInputFile(img_path), caption="✅ Ваш заказ принят!")
+        await message.answer_photo(FSInputFile(img_path), caption=f"✅ Заказ для {location} отправлен.")
+        await bot.send_photo(chat_id=GROUP_ID, photo=FSInputFile(img_path), caption=f"🔔 Новый заказ: {location}")
         
-        # Отправляем копию в ГРУППУ ЦЕХА
-        try:
-            await bot.send_photo(
-                chat_id=GROUP_ID, 
-                photo=FSInputFile(img_path), 
-                caption=f"🔔 Новый заказ от {user_name}"
-            )
-        except Exception as e:
-            await message.answer(f"⚠️ Ошибка отправки в группу: {e}")
-            
+        if os.path.exists(img_path): os.remove(img_path)
     except Exception as e:
-        await message.answer(f"❌ Ошибка обработки: {e}")
+        await message.answer(f"❌ Ошибка: {e}")
 
-@dp.message(Command("invoice"))
-async def manual_invoice(message: types.Message):
-    # Формируем итоговую накладную за весь день
-    date_today = datetime.date.today().strftime("%d.%m.%Y")
-    conn = sqlite3.connect('orders.db')
-    cur = conn.cursor()
-    cur.execute("SELECT salad, unit, SUM(value) FROM orders WHERE date=? GROUP BY salad, unit", (date_today,))
-    rows = cur.fetchall()
-    conn.close()
-
-    if not rows:
-        return await message.answer("Сегодня еще никто ничего не заказывал.")
-    
-    img_path = create_jpg_invoice(rows, "ИТОГО НА СЕГОДНЯ")
-    await bot.send_photo(chat_id=GROUP_ID, photo=FSInputFile(img_path), caption=f"📊 Сводная накладная на {date_today}")
-    await message.answer("✅ Итоговая накладная отправлена в группу.")
-
-# --- ЗАПУСК ---
 async def main():
     init_db()
-    print("Бот запущен...")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
