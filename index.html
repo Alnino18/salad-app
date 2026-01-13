@@ -2,6 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: sans-serif; background: var(--tg-theme-bg-color); color: var(--tg-theme-text-color); padding: 15px; }
@@ -40,13 +41,13 @@
   "Спаржа сухая", "Халапено", "Тирой", "Борсик йог", "Гоз йог", "Цяй жареный", 
   "Уксус", "Фунчоза сухая", "Чинпени", "Чипс", "Кукси"
 ];
-        const container = document.getElementById('salad-list');
+        const listDiv = document.getElementById('list');
         salads.forEach(name => {
-            container.innerHTML += `
-                <div class="item">
+            listDiv.innerHTML += `
+                <div class="salad-item">
                     <span>${name}</span>
                     <div>
-                        <input type="number" id="val-${name}" placeholder="1">
+                        <input type="number" id="qty-${name}" min="0" placeholder="0">
                         <select id="unit-${name}">
                             <option value="кг">кг</option>
                             <option value="шт">шт</option>
@@ -55,18 +56,27 @@
                 </div>`;
         });
 
-        function sendOrder() {
-            let result = [];
+        document.getElementById('order-btn').addEventListener('click', () => {
+            let orderData = [];
             salads.forEach(name => {
-                let val = document.getElementById(`val-${name}`).value;
+                let val = document.getElementById(`qty-${name}`).value;
                 let unit = document.getElementById(`unit-${name}`).value;
-                if (val > 0) result.push({ salad: name, value: val, unit: unit });
+                if (val > 0) {
+                    orderData.push({ salad: name, value: val, unit: unit });
+                }
             });
 
-            if (result.length === 0) return alert("Ничего не выбрано!");
-            tg.sendData(JSON.stringify(result)); // Отправляем данные боту
-        }
+            if (orderData.length === 0) {
+                alert("Вы ничего не выбрали!");
+                return;
+            }
+
+            // ВАЖНО: Отправка данных боту
+            tg.sendData(JSON.stringify(orderData));
+            tg.close(); // Закрыть приложение после отправки
+        });
     </script>
 </body>
 
 </html>
+
