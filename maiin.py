@@ -110,24 +110,50 @@ async def cmd_start(message: types.Message):
 @dp.message(F.content_type == types.ContentType.WEB_APP_DATA)
 async def handle_webapp_data(message: types.Message):
     try:
+        # 1. Получаем данные
         raw_data = json.loads(message.web_app_data.data)
-        location = raw_data.get('location', 'Не указан')
-        order_items = raw_data.get('order', [])
+        
+        # ПРОВЕРКА: Если данные пришли в новом формате (объект с location)
+        if isinstance(raw_data, dict) and 'order' in raw_data:
+            location = raw_data.get('location', 'Не указан')
+            order_items = raw_data.get('order', [])
+        else:
+            # Если данные пришли старым форматом (просто список)
+            location = "Общий цех"
+            order_items = raw_data
+
         user_name = message.from_user.full_name
-        
         db_rows = []
+
+        # 2. Обработка списка салатов
         for item in order_items:
-            save_order(user_name, location, item['name'], item['qty'], item['unit'])
-            db_rows.append((item['name'], item['unit'], item['qty']))
+            # Используем .get() чтобы избежать ошибок, если ключи называются иначе
+            salad_name = item.get('name') or item.get('salad')
+            qty = item.get('qty') or item.get('value')
+            unit = item.get('unit', 'кг')
+            
+            if salad_name and qty:
+                save_order(user_name, location, salad_name, qty, unit)
+                db_rows.append((salad_name, unit, qty))
         
+        if not db_rows:
+            return await message.answer("⚠️ Заказ пуст или некорректен.")
+
+        # 3. Создаем JPG таблицу
         img_path = create_table_invoice(db_rows, f"ЗАКАЗ: {location}", user_name)
         
-        await message.answer_photo(FSInputFile(img_path), caption=f"✅ Заказ для {location} отправлен.")
-        await bot.send_photo(chat_id=GROUP_ID, photo=FSInputFile(img_path), caption=f"🔔 Новый заказ: {location}")
-        
-        if os.path.exists(img_path): os.remove(img_path)
+        # 4. Отправляем фото
+        photo = FSInputFile(img_path)
+        await message.answer_photo(photo, caption=f"✅ Заказ для {location} принят!")
+        await bot.send_photo(chat_id=GROUP_ID, photo=photo, caption=f"🔔 Новый заказ: {location}")
+
+        # Удаляем файл после отправки
+        if os.path.exists(img_path):
+            os.remove(img_path)
+
     except Exception as e:
-        await message.answer(f"❌ Ошибка: {e}")
+        print(f"Ошибка парсинга JSON: {e}")
+        await message.answer(f"❌ Ошибка обработки данных: {e}")
 
 async def main():
     init_db()
@@ -135,4 +161,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
