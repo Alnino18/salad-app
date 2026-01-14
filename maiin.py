@@ -45,46 +45,62 @@ def create_pdf(rows, title, user):
     pdf = FPDF()
     pdf.add_page()
     
-    # ПУТЬ К ШРИФТУ: Убедитесь, что файл DejaVuSans.ttf лежит рядом с main.py
-    font_path = "DejaVuSans.ttf" 
+    # Подключаем шрифт (обязательно положите DejaVuSans.ttf в папку)
+    pdf.add_font("DejaVu", "", "DejaVuSans.ttf", uni=True)
+    pdf.add_font("DejaVu", "B", "DejaVuSans.ttf", uni=True)
     
-    if os.path.exists(font_path):
-        pdf.add_font("DejaVu", "", font_path, uni=True)
-        pdf.add_font("DejaVu", "B", font_path, uni=True) # Если есть жирный вариант, укажите его
-        font_name = "DejaVu"
-    else:
-        # Если шрифта нет, бот выдаст ошибку в консоль, но не упадет сразу
-        print(f"КРИТИЧЕСКАЯ ОШИБКА: Файл {font_path} не найден!")
-        return None
+    # 1. Добавляем прозрачный логотип
+    if os.path.exists("logo.png"):
+        pdf.image("logo.png", x=10, y=10, w=25)
 
-    # Заголовок
-    pdf.set_font(font_name, style="B", size=16)
-    pdf.cell(190, 10, txt=str(title), ln=True, align='C')
+    # 2. Заголовок (смещен вправо от лого)
+    pdf.set_font("DejaVu", "B", 20)
+    pdf.set_text_color(40, 40, 40)
+    pdf.cell(30) # Отступ от логотипа
+    pdf.cell(160, 15, txt="НАКЛАДНАЯ", ln=True, align='L')
     
-    # Инфо
-    pdf.set_font(font_name, size=10)
-    pdf.cell(190, 8, txt=f"Заказчик: {user}", ln=True, align='C')
-    pdf.cell(190, 8, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
-    pdf.ln(10)
+    pdf.set_font("DejaVu", "", 10)
+    pdf.set_text_color(100, 100, 100)
+    pdf.cell(30)
+    pdf.cell(160, 5, txt=f"Локация: {title} | Создал: {user}", ln=True, align='L')
+    pdf.cell(30)
+    pdf.cell(160, 5, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='L')
+    pdf.ln(20)
 
-    # Шапка таблицы
-    pdf.set_fill_color(240, 240, 240)
-    pdf.set_font(font_name, style="B", size=11)
-    pdf.cell(10, 10, "№", border=1, fill=True, align='C')
-    pdf.cell(95, 10, "Наименование", border=1, fill=True, align='C')
-    pdf.cell(40, 10, "Кол-во", border=1, fill=True, align='C')
-    pdf.cell(35, 10, "Ед.", border=1, fill=True, align='C')
+    # 3. Таблица в стиле Minimalist
+    # Заголовки
+    pdf.set_font("DejaVu", "B", 11)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_fill_color(255, 69, 0) # Оранжевый акцент
+    
+    pdf.cell(10, 12, "№", border=0, fill=True, align='C')
+    pdf.cell(110, 12, " Наименование товара", border=0, fill=True)
+    pdf.cell(35, 12, "Кол-во", border=0, fill=True, align='C')
+    pdf.cell(35, 12, "Ед. изм.", border=0, fill=True, align='C')
     pdf.ln()
 
-    # Данные таблицы
-    pdf.set_font(font_name, size=11)
+    # Строки товаров
+    pdf.set_font("DejaVu", "", 11)
+    pdf.set_text_color(50, 50, 50)
+    
+    fill = False
     for i, (name, unit, qty) in enumerate(rows, 1):
-        # Используем str() для всех данных, чтобы избежать ошибок типов
-        pdf.cell(10, 10, str(i), border=1, align='C')
-        pdf.cell(95, 10, str(name), border=1)
-        pdf.cell(40, 10, str(qty), border=1, align='C')
-        pdf.cell(35, 10, str(unit), border=1, align='C')
+        # Зебра-эффект (светло-серые строки)
+        if fill: pdf.set_fill_color(248, 248, 248)
+        else: pdf.set_fill_color(255, 255, 255)
+        
+        pdf.cell(10, 10, str(i), border='B', fill=True, align='C')
+        pdf.cell(110, 10, f" {name}", border='B', fill=True)
+        pdf.cell(35, 10, str(qty), border='B', fill=True, align='C')
+        pdf.cell(35, 10, unit, border='B', fill=True, align='C')
         pdf.ln()
+        fill = not fill
+
+    # Подпись
+    pdf.ln(15)
+    pdf.set_font("DejaVu", "", 10)
+    pdf.cell(190, 10, "__________________________", ln=True, align='R')
+    pdf.cell(190, 5, "Подпись ответственного лица", ln=True, align='R')
 
     filename = f"order_{datetime.datetime.now().strftime('%H%M%S')}.pdf"
     pdf.output(filename)
@@ -111,7 +127,7 @@ async def web_app(m: types.Message):
         path = create_pdf(db_rows, f"НАКЛАДНАЯ: {loc}", user)
         doc = FSInputFile(path)
         
-        await m.answer_document(doc, caption=f"✅ Заказ для {loc} сохранен.")
+        #await m.answer_document(doc, caption=f"✅ Заказ для {loc} сохранен.")
         await bot.send_document(chat_id=GROUP_ID, document=doc, caption=f"📄 Новый заказ: {loc}\n👤 {user}")
         
         if os.path.exists(path): os.remove(path)
@@ -124,5 +140,3 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
-
-
