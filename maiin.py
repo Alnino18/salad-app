@@ -56,13 +56,13 @@ def create_pdf(rows, title, user):
     # 2. Заголовок (смещен вправо от лого)
     pdf.set_font("DejaVu", "B", 20)
     pdf.set_text_color(40, 40, 40)
-    pdf.cell(30) # Отступ от логотипа
+    pdf.cell(10) # Отступ от логотипа
     pdf.cell(160, 15, txt="НАКЛАДНАЯ", ln=True, align='L')
     
     pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(30)
-    pdf.cell(160, 5, txt=f"Локация: {title} | Создал: {user}", ln=True, align='L')
+    pdf.cell(160, 5, txt=f"Локация: {loc} | Создал: {user}", ln=True, align='L')
     pdf.cell(30)
     pdf.cell(160, 5, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='L')
     pdf.ln(20)
@@ -80,7 +80,7 @@ def create_pdf(rows, title, user):
     pdf.ln()
 
     # Строки товаров
-    pdf.set_font("DejaVu", "", 11)
+    pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(50, 50, 50)
     
     fill = False
@@ -97,10 +97,10 @@ def create_pdf(rows, title, user):
         fill = not fill
 
     # Подпись
-    pdf.ln(15)
-    pdf.set_font("DejaVu", "", 10)
-    pdf.cell(190, 10, "__________________________", ln=True, align='R')
-    pdf.cell(190, 5, "Подпись ответственного лица", ln=True, align='R')
+    #pdf.ln(15)
+    #pdf.set_font("DejaVu", "", 10)
+    #pdf.cell(190, 10, "__________________________", ln=True, align='R')
+    #pdf.cell(190, 5, "Подпись ответственного лица", ln=True, align='R')
 
     filename = f"order_{datetime.datetime.now().strftime('%H%M%S')}.pdf"
     pdf.output(filename)
@@ -140,4 +140,5 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
 
