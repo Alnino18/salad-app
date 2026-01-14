@@ -51,20 +51,20 @@ def create_pdf(rows, title, user):
     
     # 1. Добавляем прозрачный логотип
     if os.path.exists("logo.png"):
-        pdf.image("logo.png", x=10, y=10, w=25)
+        pdf.image("logo.png", x=10, y=10, w=20)
 
     # 2. Заголовок (смещен вправо от лого)
     pdf.set_font("DejaVu", "B", 20)
     pdf.set_text_color(40, 40, 40)
-    pdf.cell(20) # Отступ от логотипа
-    pdf.cell(160, 15, txt=f"НАКЛАДНАЯ {title}", ln=True, align='L')
+    pdf.cell(30) # Отступ от логотипа
+    pdf.cell(160, 15, txt=f"{title}", ln=True, align='C')
     
     pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(100, 100, 100)
     pdf.cell(30)
-    pdf.cell(160, 5, txt=f"Создал: {user}", ln=True, align='L')
+    pdf.cell(160, 5, txt=f"Создал: {user}", ln=True, align='C')
     pdf.cell(30)
-    pdf.cell(160, 5, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='L')
+    pdf.cell(160, 5, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
     pdf.ln(25)
 
     # 3. Таблица в стиле Minimalist
@@ -96,7 +96,7 @@ def create_pdf(rows, title, user):
         pdf.ln()
         fill = not fill
         
-    filename = f"{datetime.datetime.now().strftime('%d.%m.%Y')}_'location'.pdf"
+    filename = f"{datetime.datetime.now().strftime('%d.%m.%Y')}_{title}.pdf"
     pdf.output(filename)
     return filename
 
@@ -118,7 +118,7 @@ async def web_app(m: types.Message):
             save_order(user, loc, it['name'], it['qty'], it['unit'])
             db_rows.append((it['name'], it['unit'], it['qty']))
 
-        path = create_pdf(db_rows, f"НАКЛАДНАЯ: {loc}", user)
+        path = create_pdf(db_rows, f"{loc}", user)
         doc = FSInputFile(path)
         
         #await m.answer_document(doc, caption=f"✅ Заказ для {loc} сохранен.")
@@ -134,3 +134,4 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
