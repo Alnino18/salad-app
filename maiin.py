@@ -45,43 +45,45 @@ def create_pdf(rows, title, user):
     pdf = FPDF()
     pdf.add_page()
     
-    # Пытаемся загрузить шрифт
-    try:
-        # Убедитесь, что файл шрифта называется именно так и лежит рядом с main.py
-        pdf.add_font("CustomArial", "", "arial.ttf")
-        font_name = "CustomArial"
-    except Exception as e:
-        print(f"Предупреждение: Не удалось загрузить arial.ttf ({e}). Использую стандартный шрифт.")
-        # Если не вышло, используем встроенный Helvetica (но он может не поддерживать кириллицу!)
-        pdf.set_font("Helvetica", size=12)
-        font_name = "Helvetica"
+    # ПУТЬ К ШРИФТУ: Убедитесь, что файл DejaVuSans.ttf лежит рядом с main.py
+    font_path = "DejaVuSans.ttf" 
     
-    pdf.set_font(font_name, size=14)
+    if os.path.exists(font_path):
+        pdf.add_font("DejaVu", "", font_path, uni=True)
+        pdf.add_font("DejaVu", "B", font_path, uni=True) # Если есть жирный вариант, укажите его
+        font_name = "DejaVu"
+    else:
+        # Если шрифта нет, бот выдаст ошибку в консоль, но не упадет сразу
+        print(f"КРИТИЧЕСКАЯ ОШИБКА: Файл {font_path} не найден!")
+        return None
+
+    # Заголовок
+    pdf.set_font(font_name, style="B", size=16)
+    pdf.cell(190, 10, txt=str(title), ln=True, align='C')
     
-    # Шапка заказа
-    pdf.set_font(font_name, style="B", size=18)
-    pdf.cell(190, 10, txt=title, ln=True, align='C')
-    
-    pdf.set_font(font_name, size=12)
-    pdf.cell(190, 10, txt=f"Заказчик: {user}", ln=True, align='C')
-    pdf.cell(190, 10, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
+    # Инфо
+    pdf.set_font(font_name, size=10)
+    pdf.cell(190, 8, txt=f"Заказчик: {user}", ln=True, align='C')
+    pdf.cell(190, 8, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
     pdf.ln(10)
 
-    # Таблица
-    pdf.set_fill_color(230, 230, 230)
-    pdf.set_font(font_name, style="B", size=12)
-    pdf.cell(15, 10, "№", border=1, fill=True)
-    pdf.cell(100, 10, "Наименование", border=1, fill=True)
-    pdf.cell(35, 10, "Кол-во", border=1, fill=True)
-    pdf.cell(30, 10, "Ед.", border=1, fill=True)
+    # Шапка таблицы
+    pdf.set_fill_color(240, 240, 240)
+    pdf.set_font(font_name, style="B", size=11)
+    pdf.cell(10, 10, "№", border=1, fill=True, align='C')
+    pdf.cell(95, 10, "Наименование", border=1, fill=True, align='C')
+    pdf.cell(40, 10, "Кол-во", border=1, fill=True, align='C')
+    pdf.cell(35, 10, "Ед.", border=1, fill=True, align='C')
     pdf.ln()
 
-    pdf.set_font(font_name, size=12)
+    # Данные таблицы
+    pdf.set_font(font_name, size=11)
     for i, (name, unit, qty) in enumerate(rows, 1):
-        pdf.cell(15, 10, str(i), border=1)
-        pdf.cell(100, 10, str(name), border=1)
-        pdf.cell(35, 10, str(qty), border=1)
-        pdf.cell(30, 10, str(unit), border=1)
+        # Используем str() для всех данных, чтобы избежать ошибок типов
+        pdf.cell(10, 10, str(i), border=1, align='C')
+        pdf.cell(95, 10, str(name), border=1)
+        pdf.cell(40, 10, str(qty), border=1, align='C')
+        pdf.cell(35, 10, str(unit), border=1, align='C')
         pdf.ln()
 
     filename = f"order_{datetime.datetime.now().strftime('%H%M%S')}.pdf"
@@ -122,4 +124,5 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
 
