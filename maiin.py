@@ -44,30 +44,44 @@ def save_order(user, loc, salad, val, unit):
 def create_pdf(rows, title, user):
     pdf = FPDF()
     pdf.add_page()
-    # Убедитесь, что arial.ttf лежит в папке!
-    pdf.add_font("Arial", "", "arial.ttf")
-    pdf.set_font("Arial", size=14)
     
-    # Шапка
-    pdf.set_font("Arial", style="B", size=18)
+    # Пытаемся загрузить шрифт
+    try:
+        # Убедитесь, что файл шрифта называется именно так и лежит рядом с main.py
+        pdf.add_font("CustomArial", "", "arial.ttf")
+        font_name = "CustomArial"
+    except Exception as e:
+        print(f"Предупреждение: Не удалось загрузить arial.ttf ({e}). Использую стандартный шрифт.")
+        # Если не вышло, используем встроенный Helvetica (но он может не поддерживать кириллицу!)
+        pdf.set_font("Helvetica", size=12)
+        font_name = "Helvetica"
+    
+    pdf.set_font(font_name, size=14)
+    
+    # Шапка заказа
+    pdf.set_font(font_name, style="B", size=18)
     pdf.cell(190, 10, txt=title, ln=True, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(190, 10, txt=f"Заказчик: {user} | Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
+    
+    pdf.set_font(font_name, size=12)
+    pdf.cell(190, 10, txt=f"Заказчик: {user}", ln=True, align='C')
+    pdf.cell(190, 10, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
     pdf.ln(10)
 
     # Таблица
-    pdf.set_fill_color(200, 220, 255)
+    pdf.set_fill_color(230, 230, 230)
+    pdf.set_font(font_name, style="B", size=12)
     pdf.cell(15, 10, "№", border=1, fill=True)
-    pdf.cell(110, 10, "Наименование", border=1, fill=True)
-    pdf.cell(30, 10, "Кол-во", border=1, fill=True)
-    pdf.cell(35, 10, "Ед.", border=1, fill=True)
+    pdf.cell(100, 10, "Наименование", border=1, fill=True)
+    pdf.cell(35, 10, "Кол-во", border=1, fill=True)
+    pdf.cell(30, 10, "Ед.", border=1, fill=True)
     pdf.ln()
 
+    pdf.set_font(font_name, size=12)
     for i, (name, unit, qty) in enumerate(rows, 1):
         pdf.cell(15, 10, str(i), border=1)
-        pdf.cell(110, 10, name, border=1)
-        pdf.cell(30, 10, str(qty), border=1)
-        pdf.cell(35, 10, unit, border=1)
+        pdf.cell(100, 10, str(name), border=1)
+        pdf.cell(35, 10, str(qty), border=1)
+        pdf.cell(30, 10, str(unit), border=1)
         pdf.ln()
 
     filename = f"order_{datetime.datetime.now().strftime('%H%M%S')}.pdf"
@@ -108,3 +122,4 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
