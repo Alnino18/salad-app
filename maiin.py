@@ -51,7 +51,7 @@ def create_pdf(rows, title, user):
     
     # 1. Добавляем прозрачный логотип
     if os.path.exists("logo.png"):
-        pdf.image("logo.png", x=10, y=10, w=20)
+        pdf.image("logo.png", x=10, y=10, w=30)
 
     # 2. Заголовок (смещен вправо от лого)
     pdf.set_font("DejaVu", "B", 20)
@@ -61,11 +61,11 @@ def create_pdf(rows, title, user):
     
     pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(30)
+    pdf.cell(20)
     pdf.cell(160, 5, txt=f"Создал: {user}", ln=True, align='C')
-    pdf.cell(30)
+    pdf.cell(20)
     pdf.cell(160, 5, txt=f"Дата: {datetime.datetime.now().strftime('%d.%m.%Y %H:%M')}", ln=True, align='C')
-    pdf.ln(25)
+    pdf.ln(15)
 
     # 3. Таблица в стиле Minimalist
     # Заголовки
@@ -134,4 +134,5 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
 
