@@ -109,13 +109,13 @@ def create_pdf(rows, title, user):
 @dp.message(Command("start"))
 async def start(m: types.Message):
     kb = [[types.KeyboardButton(text="🛒 Открыть меню", web_app=WebAppInfo(url=WEBAPP_URL))]]
-    await m.answer("Выберите цех и составьте заказ:", reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
+    await m.answer("Выберите точку и составьте заказ:", reply_markup=types.ReplyKeyboardMarkup(keyboard=kb, resize_keyboard=True))
 
 @dp.message(F.content_type == types.ContentType.WEB_APP_DATA)
 async def web_app(m: types.Message):
     try:
         data = json.loads(m.web_app_data.data)
-        loc = data.get('location', 'Цех не указан')
+        loc = data.get('location', 'Точка не указан')
         items = data.get('order', [])
         user = m.from_user.full_name
 
@@ -140,3 +140,4 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
+
