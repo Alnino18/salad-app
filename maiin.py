@@ -57,7 +57,7 @@ def create_pdf(rows, title, user):
     pdf.set_font("DejaVu", "B", 20)
     pdf.set_text_color(40, 40, 40)
     pdf.cell(20) # Отступ от логотипа
-    pdf.cell(160, 15, txt=f"НАКЛАДНАЯ {loc}", ln=True, align='L')
+    pdf.cell(160, 15, txt=f"НАКЛАДНАЯ {title}", ln=True, align='L')
     
     pdf.set_font("DejaVu", "", 10)
     pdf.set_text_color(100, 100, 100)
@@ -96,7 +96,7 @@ def create_pdf(rows, title, user):
         pdf.ln()
         fill = not fill
         
-    filename = f"{datetime.datetime.now().strftime('%d.%m.%Y')}_{loc}.pdf"
+    filename = f"{datetime.datetime.now().strftime('%d.%m.%Y')}_'location'.pdf"
     pdf.output(filename)
     return filename
 
@@ -134,6 +134,3 @@ async def run():
 
 if __name__ == "__main__":
     asyncio.run(run())
-
-
-
